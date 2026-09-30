@@ -21,3 +21,15 @@ button,input,select,textarea,.btn,.fab,.fab-home{font-family:'Anuphan',sans-seri
 @media(max-width:600px){.welcome{min-height:422px;padding:24px 20px}.welcome .copy{max-width:100%;width:100%}.welcome h2{font-size:1.8rem;line-height:1.4;margin-top:8px;margin-bottom:9px}.welcome p{font-size:.8rem;max-width:290px}.hero-art{width:345px;height:345px;right:calc(50% - 172px);bottom:-48px}.hero-doodle{top:202px;right:15px;font-size:.84rem}.welcome:after{right:-75px;top:70px;width:220px;height:220px}.finance-nav{padding-bottom:4px!important}.welcome-cta{min-height:53px;margin-top:-10px}.home-money .stat-box .num{font-size:.98rem}.header-title h1{font-size:1.35rem}.group-card .group-icon{font-size:1.7rem;width:49px;height:49px}.group-meta{font-size:.72rem}.fab,.fab-home{bottom:18px;right:16px}.tabs{position:relative;top:0}.month-bar input{flex:1}.month-bar .btn:last-child{flex-basis:100%}}
 .mobile-bottom-nav{display:none}.group-name{overflow-wrap:anywhere}#group-list{scroll-margin-top:110px}.home-money .num{white-space:nowrap;overflow-wrap:normal}.home-money .stat-box{min-width:0}
 @media(max-width:600px){body{padding-bottom:110px}.welcome{min-height:450px}.hero-doodle{top:215px}.home-money .stat-box{padding:11px 9px}.home-money .stat-box .num{font-size:clamp(.76rem,3.25vw,.95rem);letter-spacing:-.35px}.fab-home{display:none!important}.fab{bottom:100px}.mobile-bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:100;background:linear-gradient(180deg,#112e5df2,#071936fa);border-top:1px solid #375f9d;box-shadow:0 -8px 35px #0003;backdrop-filter:blur(18px);padding:9px 10px max(10px,env(safe-area-inset-bottom));align-items:center;justify-content:space-around;gap:5px}.mobile-bottom-nav button{background:none;border:0;color:#bacbed;cursor:pointer;min-width:47px;min-height:48px;font-size:.66rem;line-height:1.3}.mobile-bottom-nav button span{display:block;font-size:1.3rem;line-height:1.4;margin-bottom:3px}.mobile-bottom-nav button:focus-visible{outline:2px solid var(--accent2);border-radius:8px}.mobile-bottom-nav .nav-add{border:1px solid #ff8ca2;width:56px;min-width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ff5774,#fa214e);color:white;font-size:2rem;box-shadow:0 5px 20px #ff31525c;margin-top:-24px}.mobile-bottom-nav button:hover{color:var(--accent2)}}
+
+/* Compact phone hero: keep the artwork in flow so it never covers text. */
+@media(max-width:600px){
+  .welcome{min-height:0;padding:18px 16px 12px;flex-direction:column;gap:4px;margin-bottom:16px;border-radius:20px}
+  .welcome .copy{max-width:100%;width:100%}
+  .welcome h2{font-size:1.45rem;line-height:1.35;margin:6px 0 8px}
+  .welcome p{font-size:.78rem;max-width:100%;line-height:1.6}
+  .hero-art{position:relative;inset:auto;width:180px;height:155px;max-width:65%;align-self:center;flex-shrink:0;margin:0;filter:drop-shadow(0 5px 10px #03175740)}
+  .hero-doodle{top:auto;bottom:78px;right:16px;font-size:.7rem}
+  .welcome:after{width:140px;height:140px;top:auto;bottom:-80px;right:-70px}
+  .welcome-cta{min-height:48px;margin-top:0;margin-bottom:18px;font-size:.9rem}
+}
