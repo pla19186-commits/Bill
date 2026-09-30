@@ -196,7 +196,7 @@
   </header>
 
   <div style="padding:20px">
-    <div class="welcome"><div class="copy"><div class="eyebrow">MY MONEY · OUR MOMENTS</div><h2>ใช้ชีวิตให้สนุก<br>เรื่องเงินให้เราช่วย 🫶</h2><p>จดรายรับ–รายจ่ายให้เห็นภาพ หารบิลกับเพื่อนให้ชัด<br>เงินไปไหน ใครต้องโอน ดูได้ในที่เดียว</p></div><div class="sticker" aria-hidden="true">💸</div></div>
+    <div class="welcome"><div class="copy"><div class="eyebrow">MY MONEY · OUR MOMENTS</div><h2>ใช้ชีวิตให้สนุก<br>เรื่องเงินให้เราช่วย 🫶</h2><p>จดรายรับ–รายจ่ายให้เห็นภาพ หารบิลกับเพื่อนให้ชัด<br>เงินไปไหน ใครต้องโอน ดูได้ในที่เดียว</p></div><img class="hero-art" src="assets/friends-hero.webp" alt="" width="680" height="680" fetchpriority="high"><span class="hero-doodle" aria-hidden="true">หารกัน สนุกกว่า! ♡</span></div>
     <h2 class="home-section-heading">👯 กลุ่มของเรา <span>ทริป · มื้ออร่อย · บิลร่วมกัน</span></h2>
     <div id="group-list"></div>
     <div class="new-group-card" onclick="openNewGroupModal()">
@@ -363,6 +363,8 @@ const EMOJIS = ['🏖️','🏔️','🍜','🍻','🎉','🚗','✈️','🏠',
 
 // ════ UTILS ════
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function jsArg(v){return esc(JSON.stringify(String(v)));}
 function fmt(n){ return Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function avatarClass(name){ let h=0; for(let c of name) h=(h*31+c.charCodeAt(0))&0xff; return 'av'+(h%8); }
 function groupBg(name){ let h=0; for(let c of name) h=(h*31+c.charCodeAt(0))&0xff; return 'gbg'+(h%8); }
@@ -402,17 +404,17 @@ function renderGroupList(){
   if(groups.length===0){ el.innerHTML=''; return; }
   el.innerHTML=groups.map(grp=>{
     const total=grp.expenses.reduce((a,e)=>a+e.amount,0);
-    return `<div class="group-card ${groupBg(grp.name)}" onclick="openGroup('${grp.id}')">
-      <div class="group-icon">${grp.icon}</div>
+    return `<div class="group-card ${groupBg(grp.name)}" onclick="openGroup(${jsArg(grp.id)})">
+      <div class="group-icon">${esc(grp.icon)}</div>
       <div class="group-info">
-        <div class="group-name">${grp.name}</div>
-        <div class="group-meta">${grp.members.join(', ')||'ยังไม่มีสมาชิก'}</div>
+        <div class="group-name">${esc(grp.name)}</div>
+        <div class="group-meta">${esc(grp.members.join(', ')||'ยังไม่มีสมาชิก')}</div>
         <div class="group-meta">${grp.expenses.length} รายการ</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         ${total>0?`<div class="group-total">฿${fmt(total)}</div>`:''}
         <div style="margin-top:6px;display:flex;gap:4px;justify-content:flex-end">
-          <button class="btn secondary btn-sm btn-icon" onclick="event.stopPropagation();openEditGroupModal('${grp.id}')">✏️</button>
+          <button class="btn secondary btn-sm btn-icon" onclick="event.stopPropagation();openEditGroupModal(${jsArg(grp.id)})">✏️</button>
         </div>
       </div>
     </div>`;
@@ -517,8 +519,8 @@ function renderMembers(){
   const ms=members();
   if(ms.length===0){ el.innerHTML='<span style="color:var(--muted);font-size:.85rem">ยังไม่มีเพื่อน...</span>'; return; }
   el.innerHTML=ms.map(m=>`<div class="chip">
-    <div class="avatar ${avatarClass(m)}" style="width:22px;height:22px;font-size:.7rem">${initials(m)}</div>
-    ${m}<span class="del" onclick="removeMember('${m}')">✕</span>
+    <div class="avatar ${avatarClass(m)}" style="width:22px;height:22px;font-size:.7rem">${esc(initials(m))}</div>
+    ${esc(m)}<span class="del" onclick="removeMember(${jsArg(m)})">✕</span>
   </div>`).join('');
 }
 function updateGroupHeader(){
@@ -573,13 +575,13 @@ function closeExpenseModal(){ document.getElementById('expense-modal').classList
 
 function populatePayerSelect(selected=''){
   document.getElementById('exp-payer').innerHTML='<option value="">-- เลือกคนจ่าย --</option>'+
-    members().map(m=>`<option value="${m}" ${m===selected?'selected':''}>${m}</option>`).join('');
+    members().map(m=>`<option value="${esc(m)}" ${m===selected?'selected':''}>${esc(m)}</option>`).join('');
 }
 function populateParticipants(selectedList=[]){
   document.getElementById('exp-participants').innerHTML=members().map(m=>`
     <label class="member-check ${selectedList.includes(m)?'selected':''}">
-      <input type="checkbox" value="${m}" ${selectedList.includes(m)?'checked':''} onchange="onParticipantChange(this)">
-      <div class="avatar ${avatarClass(m)}" style="width:18px;height:18px;font-size:.65rem">${initials(m)}</div>${m}
+      <input type="checkbox" value="${esc(m)}" ${selectedList.includes(m)?'checked':''} onchange="onParticipantChange(this)">
+      <div class="avatar ${avatarClass(m)}" style="width:18px;height:18px;font-size:.65rem">${esc(initials(m))}</div>${esc(m)}
     </label>`).join('');
 }
 function onParticipantChange(cb){
@@ -599,8 +601,8 @@ function setSplitMode(mode){
 function buildCustomInputs(participants,existing={}){
   document.getElementById('custom-split-inputs').innerHTML=participants.map(m=>`
     <div class="custom-split-row">
-      <div class="name"><div class="avatar ${avatarClass(m)}" style="width:20px;height:20px;font-size:.65rem;display:inline-flex;margin-right:6px">${initials(m)}</div>${m}</div>
-      <input type="number" class="custom-amount" data-name="${m}" placeholder="0" min="0" step="0.01" value="${existing[m]||''}" oninput="updateCustomHint()" style="width:90px">
+      <div class="name"><div class="avatar ${avatarClass(m)}" style="width:20px;height:20px;font-size:.65rem;display:inline-flex;margin-right:6px">${esc(initials(m))}</div>${esc(m)}</div>
+      <input type="number" class="custom-amount" data-name="${esc(m)}" placeholder="0" min="0" step="0.01" value="${esc(existing[m]||'')}" oninput="updateCustomHint()" style="width:90px">
     </div>`).join('');
   updateCustomHint();
 }
@@ -651,7 +653,7 @@ function handleSlipUpload(event){
 }
 function renderSlipPreviews(){
   document.getElementById('slip-preview').innerHTML=pendingSlips.map((src,i)=>`
-    <div class="slip-preview-item"><img src="${src}" class="slip-thumb" onclick="viewImg('${src}')"><div class="remove-img" onclick="removeSlip(${i})">✕</div></div>`).join('');
+    <div class="slip-preview-item"><img src="${esc(src)}" class="slip-thumb" onclick="viewImg(${jsArg(src)})"><div class="remove-img" onclick="removeSlip(${i})">✕</div></div>`).join('');
 }
 function removeSlip(i){ pendingSlips.splice(i,1); renderSlipPreviews(); }
 function viewImg(src){ document.getElementById('img-modal-src').src=src; document.getElementById('img-modal').classList.add('open'); }
@@ -687,22 +689,22 @@ function renderExpenses(){
   empty.style.display='none';
   list.innerHTML=exps.map(e=>{
     const share=e.splitMode==='custom'
-      ? Object.entries(e.customAmounts||{}).map(([k,v])=>`${k}: ฿${fmt(v)}`).join(', ')
+      ? Object.entries(e.customAmounts||{}).map(([k,v])=>`${esc(k)}: ฿${fmt(v)}`).join(', ')
       : `คนละ ฿${fmt(e.amount/e.participants.length)} (${e.participants.length} คน)`;
-    const slipHtml=(e.slips||[]).length>0?`<div class="slip-area">${e.slips.map(s=>`<img src="${s}" class="slip-thumb" onclick="viewImg('${s}')">`).join('')}</div>`:'';
+    const slipHtml=(e.slips||[]).length>0?`<div class="slip-area">${e.slips.map(s=>`<img src="${esc(s)}" class="slip-thumb" onclick="viewImg(${jsArg(s)})">`).join('')}</div>`:'';
     return `<div class="expense-card">
       <div class="expense-header">
         <div>
-          <div class="expense-title">${e.name}</div>
-          <div class="expense-meta"><span>${e.date||''}</span><span class="badge payer">จ่ายโดย ${e.payer}</span></div>
+          <div class="expense-title">${esc(e.name)}</div>
+          <div class="expense-meta"><span>${esc(e.date||'')}</span><span class="badge payer">จ่ายโดย ${esc(e.payer)}</span></div>
           <div style="font-size:.78rem;color:var(--muted)">${share}</div>
-          ${e.note?`<div style="font-size:.78rem;color:var(--muted);margin-top:4px">📝 ${e.note}</div>`:''}
+          ${e.note?`<div style="font-size:.78rem;color:var(--muted);margin-top:4px">📝 ${esc(e.note)}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div class="expense-amount">฿${fmt(e.amount)}</div>
           <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end">
-            <button class="btn secondary btn-sm" onclick="openEditModal('${e.id}')">✏️</button>
-            <button class="btn btn-sm" style="background:var(--red)" onclick="deleteExpense('${e.id}')">🗑</button>
+            <button class="btn secondary btn-sm" onclick="openEditModal(${jsArg(e.id)})">✏️</button>
+            <button class="btn btn-sm" style="background:var(--red)" onclick="deleteExpense(${jsArg(e.id)})">🗑</button>
           </div>
         </div>
       </div>${slipHtml}
@@ -715,7 +717,7 @@ function renderResult(){
   const el=document.getElementById('result-content');
   const ms=members(), exps=expenses();
   if(ms.length<2||exps.length===0){ el.innerHTML=`<div class="empty-state"><div class="icon">📊</div><p>เพิ่มเพื่อนและรายจ่ายก่อนนะ<br>แล้วจะคำนวณให้เลย ✨</p></div>`; return; }
-  const balance={};
+  const balance=Object.create(null);
   ms.forEach(m=>balance[m]=0);
   exps.forEach(e=>{
     e.participants.forEach(p=>{
@@ -725,7 +727,7 @@ function renderResult(){
   });
   const total=exps.reduce((a,e)=>a+e.amount,0);
   const settlements=computeSettlements(balance);
-  const totalPaid={};
+  const totalPaid=Object.create(null);
   ms.forEach(m=>totalPaid[m]=0);
   exps.forEach(e=>totalPaid[e.payer]=(totalPaid[e.payer]||0)+e.amount);
   el.innerHTML=`
@@ -734,13 +736,13 @@ function renderResult(){
       <div class="stat-box"><div class="num">${exps.length}</div><div class="lbl">รายการ</div></div>
     </div>
     <div class="section-title">💰 ยอดสุทธิแต่ละคน</div>
-    ${ms.map(m=>{ const b=balance[m]; const s=b>0.005?'pos':b<-0.005?'neg':''; const l=b>0.005?`คนอื่นค้าง ฿${fmt(b)}`:b<-0.005?`ต้องจ่ายคืน ฿${fmt(-b)}`:'เสมอกัน ✅'; return `<div class="balance-row"><div class="avatar ${avatarClass(m)}" style="width:32px;height:32px;font-size:.75rem">${initials(m)}</div><div class="name">${m}</div><div class="bal ${s}">${l}</div></div>`; }).join('')}
+    ${ms.map(m=>{ const b=balance[m]; const s=b>0.005?'pos':b<-0.005?'neg':''; const l=b>0.005?`คนอื่นค้าง ฿${fmt(b)}`:b<-0.005?`ต้องจ่ายคืน ฿${fmt(-b)}`:'เสมอกัน ✅'; return `<div class="balance-row"><div class="avatar ${avatarClass(m)}" style="width:32px;height:32px;font-size:.75rem">${esc(initials(m))}</div><div class="name">${esc(m)}</div><div class="bal ${s}">${l}</div></div>`; }).join('')}
     <hr class="divider">
     <div class="section-title">🔄 ใครต้องโอนให้ใคร</div>
-    ${settlements.length===0?'<div class="balance-row" style="justify-content:center;color:var(--green)">🎉 เคลียร์หมดแล้ว!</div>':settlements.map(s=>`<div class="settle-card"><div style="font-size:1.2rem">💸</div><div class="settle-text"><strong>${s.from}</strong><span style="color:var(--muted)"> โอนให้ </span><strong>${s.to}</strong></div><div class="settle-amount">฿${fmt(s.amount)}</div></div>`).join('')}
+    ${settlements.length===0?'<div class="balance-row" style="justify-content:center;color:var(--green)">🎉 เคลียร์หมดแล้ว!</div>':settlements.map(s=>`<div class="settle-card"><div style="font-size:1.2rem">💸</div><div class="settle-text"><strong>${esc(s.from)}</strong><span style="color:var(--muted)"> โอนให้ </span><strong>${esc(s.to)}</strong></div><div class="settle-amount">฿${fmt(s.amount)}</div></div>`).join('')}
     <hr class="divider">
     <div class="section-title">📋 รายละเอียดแต่ละคน</div>
-    ${ms.map(m=>{ const paid=totalPaid[m]||0; const share=exps.reduce((a,e)=>{ if(!e.participants.includes(m)) return a; return a+(e.splitMode==='custom'?((e.customAmounts&&e.customAmounts[m])||0):e.amount/e.participants.length); },0); return `<div class="person-detail-card"><div class="ph"><span><div class="avatar ${avatarClass(m)}" style="display:inline-flex;width:22px;height:22px;font-size:.7rem;margin-right:8px">${initials(m)}</div>${m}</span></div><div class="detail-line"><span>จ่ายออกไปแล้ว</span><span style="color:var(--accent2)">฿${fmt(paid)}</span></div><div class="detail-line"><span>ส่วนแบ่งที่ต้องจ่าย</span><span>฿${fmt(share)}</span></div><div class="detail-line total"><span>สุทธิ</span><span style="color:${balance[m]>0.005?'var(--green)':balance[m]<-0.005?'var(--red)':'var(--muted)'}">${balance[m]>0.005?'+':''}฿${fmt(balance[m])}</span></div></div>`; }).join('')}`;
+    ${ms.map(m=>{ const paid=totalPaid[m]||0; const share=exps.reduce((a,e)=>{ if(!e.participants.includes(m)) return a; return a+(e.splitMode==='custom'?((e.customAmounts&&e.customAmounts[m])||0):e.amount/e.participants.length); },0); return `<div class="person-detail-card"><div class="ph"><span><div class="avatar ${avatarClass(m)}" style="display:inline-flex;width:22px;height:22px;font-size:.7rem;margin-right:8px">${esc(initials(m))}</div>${esc(m)}</span></div><div class="detail-line"><span>จ่ายออกไปแล้ว</span><span style="color:var(--accent2)">฿${fmt(paid)}</span></div><div class="detail-line"><span>ส่วนแบ่งที่ต้องจ่าย</span><span>฿${fmt(share)}</span></div><div class="detail-line total"><span>สุทธิ</span><span style="color:${balance[m]>0.005?'var(--green)':balance[m]<-0.005?'var(--red)':'var(--muted)'}">${balance[m]>0.005?'+':''}฿${fmt(balance[m])}</span></div></div>`; }).join('')}`;
 }
 function computeSettlements(bal){
   const creditors=[],debtors=[];
