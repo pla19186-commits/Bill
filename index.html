@@ -534,7 +534,7 @@ function openAddModal(){
   editingExpenseId=null; pendingSlips=[]; splitMode='equal';
   document.getElementById('modal-title').textContent='➕ เพิ่มรายจ่าย';
   document.getElementById('exp-name').value='';
-  document.getElementById('exp-amount').value='';
+  document.getElementById('exp-amount').value='';document.getElementById('exp-discount').value='';updatePricePreview('exp');
   document.getElementById('exp-note').value='';
   document.getElementById('slip-preview').innerHTML='';
   document.getElementById('ai-scanning').classList.remove('show');
@@ -552,7 +552,7 @@ function openEditModal(id){
   editingExpenseId=id; pendingSlips=[...(e.slips||[])]; splitMode=e.splitMode||'equal';
   document.getElementById('modal-title').textContent='✏️ แก้ไขรายจ่าย';
   document.getElementById('exp-name').value=e.name;
-  document.getElementById('exp-amount').value=e.amount;
+  document.getElementById('exp-amount').value=e.priceExpression||String(e.amount);document.getElementById('exp-discount').value=e.discountExpression||'';updatePricePreview('exp');
   document.getElementById('exp-note').value=e.note||'';
   document.getElementById('ai-scanning').classList.remove('show');
   document.getElementById('ai-result-banner').classList.remove('show');
@@ -607,7 +607,7 @@ function buildCustomInputs(participants,existing={}){
   updateCustomHint();
 }
 function updateCustomHint(){
-  const total=parseFloat(document.getElementById('exp-amount').value)||0;
+  const total=(readPrice('exp')?.net||0)/100;
   let sum=0; document.querySelectorAll('.custom-amount').forEach(i=>sum+=parseFloat(i.value)||0);
   const diff=total-sum, hint=document.getElementById('custom-split-hint');
   if(Math.abs(diff)<0.01){ hint.textContent='✅ ยอดตรง'; hint.style.color='var(--green)'; }
@@ -637,7 +637,7 @@ async function handleAIScan(event){
     document.getElementById('ai-scanning').classList.remove('show');
     if(parsed.error){ showAlert('🤖 '+parsed.error,'⚠️'); return; }
     if(parsed.name) document.getElementById('exp-name').value=parsed.name;
-    if(parsed.amount){ document.getElementById('exp-amount').value=parsed.amount; updateCustomHint(); }
+    if(parsed.amount){ document.getElementById('exp-amount').value=parsed.amount;document.getElementById('exp-discount').value='';updatePricePreview('exp'); }
     if(parsed.note) document.getElementById('exp-note').value=parsed.note;
     const parts=[]; if(parsed.name) parts.push('ชื่อ: '+parsed.name); if(parsed.amount) parts.push('฿'+fmt(Number(parsed.amount)));
     document.getElementById('ai-result-text').textContent='✨ AI อ่านได้: '+parts.join(' · ')+' — ตรวจสอบด้วยนะ';
@@ -661,12 +661,12 @@ function viewImg(src){ document.getElementById('img-modal-src').src=src; documen
 // ════ SAVE EXPENSE ════
 function saveExpense(){
   const name=document.getElementById('exp-name').value.trim();
-  const amount=parseFloat(document.getElementById('exp-amount').value);
+  const amount=(readPrice('exp')?.net||0)/100;
   const payer=document.getElementById('exp-payer').value;
   const participants=getCheckedParticipants();
   const note=document.getElementById('exp-note').value.trim();
   if(!name){ showAlert('ใส่ชื่อรายการด้วยนะ'); return; }
-  if(!amount||amount<=0){ showAlert('ใส่จำนวนเงินด้วยนะ'); return; }
+  if(!amount||amount<=0){ showAlert('ตรวจสอบราคาและส่วนลด ยอดสุทธิต้องมากกว่า 0'); return; }
   if(!payer){ showAlert('เลือกว่าใครเป็นคนจ่าย'); return; }
   if(participants.length===0){ showAlert('เลือกคนที่ร่วมแชร์ด้วยนะ'); return; }
   let customAmounts={};
@@ -674,7 +674,7 @@ function saveExpense(){
     let sum=0; document.querySelectorAll('.custom-amount').forEach(i=>{ customAmounts[i.dataset.name]=parseFloat(i.value)||0; sum+=customAmounts[i.dataset.name]; });
     if(Math.abs(sum-amount)>0.01){ showAlert('ยอดกำหนดเองยังไม่ตรงกับยอดรวม'); return; }
   }
-  const obj={id:editingExpenseId||uid(),name,amount,payer,participants,note,splitMode,customAmounts,slips:[...pendingSlips],date:new Date().toLocaleDateString('th-TH')};
+  const obj={id:editingExpenseId||uid(),name,amount,priceExpression:document.getElementById('exp-amount').value,discountExpression:document.getElementById('exp-discount').value,payer,participants,note,splitMode,customAmounts,slips:[...pendingSlips],date:new Date().toLocaleDateString('th-TH')};
   const exps=g().expenses;
   if(editingExpenseId){ const idx=exps.findIndex(e=>e.id===editingExpenseId); exps[idx]=obj; }
   else exps.push(obj);
