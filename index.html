@@ -312,17 +312,17 @@
       </div>
     </div>
     <div class="field">
-      <label>สแกนสลิปด้วย AI ✨</label>
+      <label>อ่านสลิปอัตโนมัติ 📄</label>
       <label class="ai-scan-box" for="ai-slip-input">
-        <div style="font-size:1.8rem;margin-bottom:6px">🤖📄</div>
-        <div class="ai-scan-label">แตะเพื่ออัปโหลดสลิป — AI จะอ่านให้เลย</div>
-        <div class="ai-scan-sub">ระบุชื่อรายการ + ราคาให้อัตโนมัติ</div>
+        <div style="font-size:1.8rem;margin-bottom:6px">🔎📄</div>
+        <div class="ai-scan-label">แตะเพื่ออัปโหลดสลิป — อ่านยอดให้อัตโนมัติ</div>
+        <div class="ai-scan-sub">อ่านข้อความไทย–อังกฤษบนเครื่อง · ตรวจยอดก่อนบันทึก</div>
         <input type="file" id="ai-slip-input" accept="image/*" onchange="handleAIScan(event)">
       </label>
-      <div class="ai-scanning" id="ai-scanning"><div class="spinner"></div><span>AI กำลังอ่านสลิป...</span></div>
-      <div class="ai-result-banner" id="ai-result-banner"><span style="font-size:1.1rem">✅</span><span id="ai-result-text"></span></div>
+      <div class="ai-scanning" id="ai-scanning"><div class="spinner"></div><span>กำลังอ่านสลิป...</span></div>
+      <div class="ai-result-banner" id="ai-result-banner"><span style="font-size:1.1rem">✅</span><span id="ai-result-text"></span></div><details style="margin-top:8px"><summary>ดูข้อความที่อ่านได้</summary><pre id="ai-ocr-text" style="white-space:pre-wrap;font:inherit;font-size:.8rem;max-height:180px;overflow:auto"></pre></details>
       <label class="slip-upload" for="slip-input" style="margin-top:6px">
-        <div>📎 แนบรูปเพิ่มเติม (ไม่บังคับ)</div>
+        <div>📎 แนบรูปและอ่านยอด (รูปแรก)</div>
         <input type="file" id="slip-input" accept="image/*" multiple onchange="handleSlipUpload(event)">
       </label>
       <div class="slip-preview" id="slip-preview"></div>
@@ -530,6 +530,7 @@ function updateGroupHeader(){
 
 // ════ EXPENSE MODAL ════
 function openAddModal(){
+  scanSession++;
   if(members().length<2){ showAlert('เพิ่มเพื่อนอย่างน้อย 2 คนก่อนนะ 👥'); return; }
   editingExpenseId=null; pendingSlips=[]; splitMode='equal';
   document.getElementById('modal-title').textContent='➕ เพิ่มรายจ่าย';
@@ -547,6 +548,7 @@ function openAddModal(){
   document.getElementById('expense-modal').classList.add('open');
 }
 function openEditModal(id){
+  scanSession++;
   const e=expenses().find(x=>x.id===id);
   if(!e) return;
   editingExpenseId=id; pendingSlips=[...(e.slips||[])]; splitMode=e.splitMode||'equal';
@@ -571,7 +573,7 @@ function openEditModal(id){
   }
   document.getElementById('expense-modal').classList.add('open');
 }
-function closeExpenseModal(){ document.getElementById('expense-modal').classList.remove('open'); editingExpenseId=null; pendingSlips=[]; }
+function closeExpenseModal(){ scanSession++; document.getElementById('expense-modal').classList.remove('open'); editingExpenseId=null; pendingSlips=[]; }
 
 function populatePayerSelect(selected=''){
   document.getElementById('exp-payer').innerHTML='<option value="">-- เลือกคนจ่าย --</option>'+
@@ -616,41 +618,56 @@ function updateCustomHint(){
 }
 
 // ════ AI SCAN ════
-async function handleAIScan(event){
-  const file=event.target.files[0]; if(!file) return; event.target.value='';
-  const base64=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.onerror=()=>rej(); r.readAsDataURL(file); });
-  pendingSlips.push('data:'+file.type+';base64,'+base64);
-  renderSlipPreviews();
-  document.getElementById('ai-scanning').classList.add('show');
-  document.getElementById('ai-result-banner').classList.remove('show');
-  try {
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      model:'claude-sonnet-4-6',max_tokens:1000,
-      messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:file.type,data:base64}},
-        {type:'text',text:'คุณคือผู้ช่วยอ่านสลิปและใบเสร็จ ตอบเป็น JSON เท่านั้น ห้าม markdown\nถ้าเป็นสลิป/ใบเสร็จ: {"name":"ชื่อร้านหรือรายการ","amount":ตัวเลข,"note":"รายละเอียด"}\nถ้าอ่านไม่ได้: {"error":"ข้อความ"}'}
-      ]}]
-    })});
-    const data=await resp.json();
-    const text=(data.content||[]).map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(text);
-    document.getElementById('ai-scanning').classList.remove('show');
-    if(parsed.error){ showAlert('🤖 '+parsed.error,'⚠️'); return; }
-    if(parsed.name) document.getElementById('exp-name').value=parsed.name;
-    if(parsed.amount){ document.getElementById('exp-amount').value=parsed.amount;document.getElementById('exp-discount').value='';updatePricePreview('exp'); }
-    if(parsed.note) document.getElementById('exp-note').value=parsed.note;
-    const parts=[]; if(parsed.name) parts.push('ชื่อ: '+parsed.name); if(parsed.amount) parts.push('฿'+fmt(Number(parsed.amount)));
-    document.getElementById('ai-result-text').textContent='✨ AI อ่านได้: '+parts.join(' · ')+' — ตรวจสอบด้วยนะ';
-    document.getElementById('ai-result-banner').classList.add('show');
-  } catch(err){
-    document.getElementById('ai-scanning').classList.remove('show');
-    showAlert('เกิดข้อผิดพลาดในการอ่านสลิป กรุณากรอกเองนะ','⚠️');
+let scanSession=0, scanBusy=false, ocrLoader=null;
+function loadReceiptOCR(){
+ if(window.Tesseract)return Promise.resolve(window.Tesseract);
+ if(!ocrLoader)ocrLoader=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';script.onload=()=>resolve(window.Tesseract);script.onerror=()=>{script.remove();ocrLoader=null;reject(Error('โหลดเครื่องมืออ่านรูปไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'));};document.head.appendChild(script);});
+ return ocrLoader;
+}
+function receiptAmount(text){
+ const lines=text.replace(/[๐-๙]/g,c=>String('๐๑๒๓๔๕๖๗๘๙'.indexOf(c))).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const numbers=line=>[...line.matchAll(/(?:^|[^\d.,])((?:\d{1,3}(?:,\d{3})+|\d{1,9})(?:\.\d{2}))(?=$|[^\d.,])/g)].map(m=>Number(m[1].replace(/,/g,''))).filter(n=>n>0&&n<=999999999);
+ const totals=[];
+ for(let i=0;i<lines.length;i++){
+  if(/subtotal|fee|discount|change|ค่าธรรมเนียม|ส่วนลด|เงินทอน|ก่อนส่วนลด/i.test(lines[i]))continue;
+  if(/grand\s*total|net\s*(?:total|amount)|amount\s*(?:paid|transferred)|^total\b|จำนวนเงิน|ยอด(?:ชำระ|สุทธิ|โอน|รวม)|รวมทั้งสิ้น/i.test(lines[i])){
+   const found=numbers(lines[i]);if(found.length===1)totals.push(found[0]);else if(!found.length&&i+1<lines.length){const next=numbers(lines[i+1]);if(next.length===1)totals.push(next[0]);}
   }
+ }
+ const unique=[...new Set(totals)];if(unique.length===1)return unique[0];if(unique.length>1)return null;
+ const currency=lines.filter(l=>/บาท|THB|฿/i.test(l)&&!/fee|discount|ค่าธรรมเนียม|ส่วนลด/i.test(l)).flatMap(numbers);
+ return new Set(currency).size===1?currency[0]:null;
 }
-function handleSlipUpload(event){
-  for(const f of event.target.files){ const r=new FileReader(); r.onload=e=>{ pendingSlips.push(e.target.result); renderSlipPreviews(); }; r.readAsDataURL(f); }
-  event.target.value='';
+async function receiptImage(file){
+ if(!/^image\/(jpeg|png|webp|gif|bmp)$/i.test(file.type))throw Error('ใช้รูป JPG, PNG หรือ WebP นะคะ ถ้าเป็น HEIC ให้แปลงเป็น JPG ก่อน');
+ if(file.size>15*1024*1024)throw Error('รูปใหญ่เกิน 15 MB กรุณาลดขนาดก่อน');
+ const url=URL.createObjectURL(file);try{const image=new Image();image.src=url;await image.decode();const scale=Math.min(1,1800/Math.max(image.width,image.height));const canvas=document.createElement('canvas');canvas.width=Math.round(image.width*scale);canvas.height=Math.round(image.height*scale);const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);return canvas.toDataURL('image/jpeg',.9);}finally{URL.revokeObjectURL(url);}
 }
+async function handleAIScan(event){const file=event.target.files[0];event.target.value='';if(file)await scanReceipt(file);}
+async function scanReceipt(file){
+ if(scanBusy){showAlert('กำลังอ่านรูปก่อนหน้า กรุณารอสักครู่');return;}
+ const session=++scanSession;scanBusy=true;let worker,timer;
+ const status=document.querySelector('#ai-scanning span');document.getElementById('ai-scanning').classList.add('show');document.getElementById('ai-result-banner').classList.remove('show');status.textContent='เตรียมอ่านรูป… ครั้งแรกต้องดาวน์โหลดเครื่องมือ';
+ try{
+  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('อ่านรูปนานเกินไป กรุณาลองใหม่ด้วยรูปที่ชัดขึ้น')),90000);});
+  const task=(async()=>{
+   const image=await receiptImage(file);if(session!==scanSession)return;
+   pendingSlips.push(image);renderSlipPreviews();
+   const OCR=await loadReceiptOCR();if(session!==scanSession)return;
+   worker=await OCR.createWorker('tha+eng',1,{logger:m=>{if(session===scanSession)status.textContent=m.status==='recognizing text'?'กำลังอ่านข้อความ '+Math.round((m.progress||0)*100)+'%':'กำลังโหลดเครื่องมืออ่านรูป…';}});
+   if(session!==scanSession){await worker.terminate();return;}
+   const result=await worker.recognize(image);if(session!==scanSession)return;
+   const text=result.data.text.trim();const amount=receiptAmount(text);
+   if(amount!==null){document.getElementById('exp-amount').value=amount.toFixed(2);document.getElementById('exp-discount').value='';updatePricePreview('exp');}
+   if(!document.getElementById('exp-name').value.trim())document.getElementById('exp-name').value='รายการจากสลิป';
+   document.getElementById('ai-result-text').textContent=amount!==null?'อ่านยอดได้ ฿'+fmt(amount)+' — ตรวจสอบกับรูปก่อนบันทึก (ยอดสุทธิจากสลิป ไม่ต้องหักส่วนลดซ้ำ)':'แนบรูปแล้ว แต่ยังระบุยอดสุทธิไม่ได้ กรุณากรอกราคาเอง หรือใช้รูปที่ชัดขึ้น';
+   document.getElementById('ai-ocr-text').textContent=text||'อ่านข้อความไม่ได้';document.getElementById('ai-result-banner').classList.add('show');
+  })();
+  await Promise.race([task,timeout]);
+ }catch(error){if(session===scanSession){console.warn('[receipt-scan]',error.message);showAlert(error.message||'อ่านรูปไม่สำเร็จ กรุณาลองใหม่','⚠️');}}
+ finally{clearTimeout(timer);if(worker)await worker.terminate().catch(()=>{});if(session===scanSession){scanSession++;document.getElementById('ai-scanning').classList.remove('show');}scanBusy=false;}
+}
+async function handleSlipUpload(event){const files=[...event.target.files];event.target.value='';if(!files.length)return;await scanReceipt(files[0]);for(const file of files.slice(1)){try{pendingSlips.push(await receiptImage(file));renderSlipPreviews();}catch(error){showAlert(error.message);}}}
 function renderSlipPreviews(){
   document.getElementById('slip-preview').innerHTML=pendingSlips.map((src,i)=>`
     <div class="slip-preview-item"><img src="${esc(src)}" class="slip-thumb" onclick="viewImg(${jsArg(src)})"><div class="remove-img" onclick="removeSlip(${i})">✕</div></div>`).join('');
